@@ -1,0 +1,14 @@
+Vim (windows):
+	Download vimclojure from mercurial or use the tar file
+	(I couldn't get gradle to work)
+	Copy the vim directories (ftplugin, doc, indent...) to ~/vimfiles
+	Create a ~/_vimrc with:
+		filetype plugin indent on
+		syntax on
+
+		let clj_want_gorilla = 1
+
+		let vimclojure#NailgunClient = "D:\bin\ng.exe"
+
+		autocmd BufRead,BufNewFile *.clj nmap xyz <Plug>ClojureEvalToplevel
+	In the project directory, do "lein nailgun"
