@@ -9,4 +9,3 @@
 				{:id 4, :owner "remleduff", :title "Have Spacesuit Will Travel"}]])
 
 (client ["select" "collection" {"where" ["=" :owner "remleduff"]}])
-
