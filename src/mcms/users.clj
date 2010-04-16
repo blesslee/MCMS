@@ -8,7 +8,8 @@
 
 (defsnippet user-template "mcms/users-template.html" (selector [:#item])
   [user]
-  [:.user] (content (get user "name")))
+  [:.user] (let [username (get user "name")] 
+	     (do-> (set-attr :href (str "/" username)) (content username))))
 
 (defsnippet user-form "mcms/addUser.html" (selector [:form])
   [destination]

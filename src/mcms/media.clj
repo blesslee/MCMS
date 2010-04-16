@@ -16,7 +16,10 @@
 
 (defsnippet item "mcms/media-template.html" (selector [:#item])
   [media] 
-  [:.isbn] (content (str (get media "id")))
+  [:.isbn] (let [isbn (get media "id")] 
+	     (do->
+	      (content (str isbn))
+	      (set-attr :href (str "/media/" isbn))))
   [:.title] (content (get media "title"))
   [:.author] (content (get media "author"))
   [:.cover] (set-attr :src (str "/covers/" (get media "id"))))
@@ -35,6 +38,7 @@
 (defn add-item [db {:keys [isbn author title cover] :as item}]
   (let [isbn (Integer/parseInt isbn)]
     ; TODO: Check to make sure isbn isn't null
+    ; TODO: Make sure ISBN is valid
     ; TODO: Query libraryThing for any missing data, including coverart
     (db ["checked-write"
 	 (count-item isbn) 0 ; Don't insert the book if its ISBN already exists
