@@ -37,5 +37,5 @@
   ([db username]
      (db ["insert" "users" {:id (next-id db "users"), :name username}])))
 
-(defn list-users [db]
+(defn show-users [db]
   (apply str (users-template (users db))))
