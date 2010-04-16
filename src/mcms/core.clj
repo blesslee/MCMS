@@ -18,9 +18,14 @@
   (POST "/media"
 	(add-item @*db* params))
 					;(POST "/:username" (add-user params))
-  (POST "/:username/:isbn" (add-to-collection @*db* params))
+  (GET "/users"
+       (list-users @*db*))
+  (POST "/users"
+	(add-user @*db* (:username params))
+	(list-users @*db*))
+  (POST "/:username" (add-to-collection @*db* params))
   (GET "/:username"
-       (collection-list @*db* (:username params)))
+       (list-collection @*db* (:username params)))
   (ANY "*"
        [404 "Page Not Found"]))
 

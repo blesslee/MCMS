@@ -2,8 +2,13 @@
   (:require [fleetdb.client :as fleetdb])
   (:use [mcms covers] 
 	[compojure]
-	[clojure.contrib.duck-streams :only [copy]])
+	[clojure.contrib.duck-streams :only [copy]]
+	[net.cgrand.enlive-html])
   (:import [java.io File]))
+
+(defsnippet book-form "mcms/addBook.html" (selector [:form])
+  [destination]
+  [:form] (set-attr :action destination))
 
 (defn count-item 
   ([isbn]
