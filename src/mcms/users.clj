@@ -7,9 +7,10 @@
   (:import [java.io File]))
 
 (defsnippet user-template "mcms/users-template.html" (selector [:#item])
-  [user]
-  [:.user] (let [username (get user "name")] 
-	     (do-> (set-attr :href (str "/" username)) (content username))))
+  [{:strs [name]}]
+  [:.user]   (do-> 
+	      (set-attr :href (str "/" name)) 
+	      (content name)))
 
 (defsnippet user-form "mcms/addUser.html" (selector [:form])
   [destination]

@@ -15,14 +15,13 @@
   [:form] (set-attr :action destination))
 
 (defsnippet item "mcms/media-template.html" (selector [:#item])
-  [media] 
-  [:.isbn] (let [isbn (get media "id")] 
-	     (do->
-	      (content (str isbn))
-	      (set-attr :href (str "/media/" isbn))))
-  [:.title] (content (get media "title"))
-  [:.author] (content (get media "author"))
-  [:.cover] (set-attr :src (str "/covers/" (get media "id"))))
+  [{:strs [id title author]}] 
+  [:.isbn] (do->
+	    (content (str id))
+	    (set-attr :href (str "/media/" id)))
+  [:.title] (content title)
+  [:.author] (content author)
+  [:.cover] (set-attr :src (str "/covers/" id)))
 
 (deftemplate media-template "mcms/media-template.html" [collection]
   [:#add-media] (do-> (after (add-media-form "/media")))
