@@ -12,12 +12,12 @@
        (serve-file "covers" (:isbn params)))
   (POST "/covers/:isbn"
 	(add-cover (:isbn params) (get-in params [:cover :tempfile])))
-					;(GET "/media" (show-search-page))
   (GET "/media/:isbn"
        (show-item (first (get-items @*db* [(Integer/parseInt (:isbn params))]))))
+  (GET "/media"
+       (list-media @*db*))
   (POST "/media"
 	(add-item @*db* params))
-					;(POST "/:username" (add-user params))
   (GET "/users"
        (list-users @*db*))
   (POST "/users"

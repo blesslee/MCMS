@@ -2,16 +2,9 @@
   (:use [net.cgrand.enlive-html]
 	[mcms db media users]))
 
-(defsnippet item "mcms/main-template.html" (selector [:#item])
-  [media] 
-  [:.isbn] (content (str (get media "id")))
-  [:.title] (content (get media "title"))
-  [:.author] (content (get media "author"))
-  [:.cover] (set-attr :src (str "/covers/" (get media "id"))))
-
-(deftemplate collection-template "mcms/main-template.html" [username collection]
+(deftemplate collection-template "mcms/collection-template.html" [username collection]
   [:.collection] (content (str username "'s Collection"))
-  [:#add-book] (do-> (after (book-form (str "/" username))))
+  [:#add-media] (do-> (after (add-media-form (str "/" username))))
   [:#item] (content (map item collection)))
 
 (defn show-collection [username media] (apply str (collection-template username media)))
