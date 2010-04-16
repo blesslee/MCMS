@@ -19,10 +19,10 @@
   (POST "/media"
 	(add-item @*db* params))
   (GET "/users"
-       (list-users @*db*))
+       (show-users @*db*))
   (POST "/users"
 	(add-user @*db* (:username params))
-	(list-users @*db*))
+	(show-users @*db*))
   (POST "/:username" (add-to-collection @*db* params))
   (GET "/:username"
        (list-collection @*db* (:username params)))
