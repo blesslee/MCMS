@@ -21,8 +21,7 @@
 
 (defn add-to-collection 
   ([db {username :username, isbn :isbn :as item}]
-     (let [uid (get-user-id db username)
-	   isbn (if (integer? isbn) isbn (Integer/parseInt isbn))]
+     (let [uid (get-user-id db username)]
        (when (zero? (count-item db isbn)) (add-item db item))
        (db ["insert" "collection" {:id (next-id db "collection") :isbn isbn, :owner uid}])
        (list-collection db username))))

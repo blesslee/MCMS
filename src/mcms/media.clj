@@ -1,6 +1,6 @@
 (ns mcms.media
-  (:require [fleetdb.client :as fleetdb])
-  (:use [mcms covers] 
+  (:require [fleetdb.client :as fleetdb] [clojure.xml :as xml])
+  (:use [mcms covers entrez] 
 	[compojure]
 	[clojure.contrib.duck-streams :only [copy]]
 	[net.cgrand.enlive-html])
@@ -35,14 +35,16 @@
      (db (count-item isbn))))
 
 (defn add-item [db {:keys [isbn author title cover] :as item}]
-  (let [isbn (Integer/parseInt isbn)]
+  (let [author (get-author isbn)
+        title (get-title isbn)
+        cover-source (get-cover isbn cover)]
     ; TODO: Check to make sure isbn isn't null
     ; TODO: Make sure ISBN is valid
     ; TODO: Query libraryThing for any missing data, including coverart
     (db ["checked-write"
 	 (count-item isbn) 0 ; Don't insert the book if its ISBN already exists
 	 ["insert" "media" {:id isbn :author author :title title}]])
-    (when (.exists (:tempfile cover)) (add-cover isbn (:tempfile cover)))))
+    (add-cover isbn cover-source)))
 
 (defn get-items
   ([isbns]
