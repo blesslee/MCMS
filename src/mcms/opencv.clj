@@ -1,21 +1,19 @@
 (ns mcms.opencv
-    (:use [clj-native.direct :only [defclib loadlib typeof]]
-        [clj-native.structs :only [byref byval]]
-        [clj-native.callbacks :only [callback]])
-    (:import [highgui HighGuiLibrary]))
-        
+    (:import	[java.util.zip ZipFile ZipEntry]
+	 	[name.audet.samuel.javacv.jna highgui cxcore cv cxcore$IplImage]
+))
 
 (defn create-capture []
-  (HighGuiLibrary/cvCreateCameraCapture HighGuiLibrary/CV_CAP_ANY))
+  (highgui/cvCreateCameraCapture highgui/CV_CAP_ANY))
 
 (defn get-pixels []
     )
     
 (defn grab-frame [capture]
-    (HighGuiLibrary/cvQueryFrame capture))
+    (highgui/cvQueryFrame capture))
     
-(defn diff [image1 image2]
-    (HighGuiLibrary/cvAbsDiff image1 image2 image2))
+#_(defn diff [image1 image2]
+    (highgui/cvAbsDiff image1 image2 image2))
     
 (defn convert [output-type]
     (.convert output-type))
@@ -26,5 +24,5 @@
 (defn threshold [floor]
     (.threshold floor))
     
-(defn remember []
+#_(defn remember []
     (.remember))
