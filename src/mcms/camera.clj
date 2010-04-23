@@ -51,7 +51,7 @@
     (cxcore/cvRectangle img (.byValue pt1) (.byValue pt2) (cxcore/CV_RGB 255 0 0) 3 8 0))) 
 
 (defn draw-rects [img rects]
-  (map (partial draw-rect img) rects))
+  (dorun (map (partial draw-rect img) rects)))
 
 (defn face->rect [face]
   (cxcore$CvRect. face))
