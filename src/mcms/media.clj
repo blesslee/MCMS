@@ -58,5 +58,5 @@
   ([db uid]
      (db (owned uid))))
 
-(defn list-media [db] 
+(defn show-media [db] 
   (media-template (db ["select" "media"])))

@@ -15,10 +15,10 @@
   (GET "/media/:isbn"
        (show-item (first (get-items @*db* [(:isbn params)]))))
   (GET "/media"
-       (list-media @*db*))
+       (show-media @*db*))
   (POST "/media"
 	(add-item @*db* params)
-    (list-media @*db*))
+	(show-media @*db*))
   (GET "/users"
        (show-users @*db*))
   (POST "/users"
@@ -26,9 +26,9 @@
 	(show-users @*db*))
   (POST "/:username" (add-to-collection @*db* params))
   (GET "/:username"
-       (list-collection @*db* (:username params)))
+       (show-user-collection @*db* (:username params)))
   (GET "*"
-        (or (serve-file "public" (:* params)) :next))
+       (or (serve-file "public" (:* params)) :next))
   (ANY "*"
        [404 "Page Not Found"]))
 
