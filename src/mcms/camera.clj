@@ -1,9 +1,13 @@
 (ns mcms.camera
 	(:use [mcms opencv])
-	(:import [name.audet.samuel.javacv CanvasFrame OpenCVFrameGrabber JavaCvErrorCallback]
-		 [name.audet.samuel.javacv.jna cv cxcore cxcore$IplImage cxcore$CvMemStorage cxcore$CvSeq cxcore$CvRect cxcore$CvPoint cv$CvHaarClassifierCascade]))
+	(:import [java.awt.event ActionListener KeyAdapter]
+             [java.util Timer TimerTask]
+             [name.audet.samuel.javacv CanvasFrame OpenCVFrameGrabber JavaCvErrorCallback]
+		     [name.audet.samuel.javacv.jna cv cxcore cxcore$IplImage cxcore$CvMemStorage cxcore$CvSeq cxcore$CvRect cxcore$CvPoint cv$CvHaarClassifierCascade]))
 
 (set! *warn-on-reflection* true)
+
+(def frame-rate (long 1000/30))
 
 ; CvHaarClassifierCascade cascade = new CvHaarClassifierCascade(cvLoad(cascadeName));
 ; cvCvtColor(grabbedImage, grayImage, CV_BGR2GRAY);
@@ -68,8 +72,14 @@
 (defn make-grabber []
   (doto (OpenCVFrameGrabber. 0) (.start)))
 
+(defn key-listener []
+  (proxy [KeyAdapter] [] 
+    (keyTyped [e]
+      (println "listening!!!"))))
+
 (defn make-frame [#^String title]
-  (CanvasFrame. title))
+  (doto (CanvasFrame. title)
+        (.addKeyListener (key-listener))))
 
 (defn debug []
   (def  grabber (make-grabber))
@@ -80,17 +90,22 @@
   (.stop #^OpenCVFrameGrabber grabber)
   (.dispose #^CanvasFrame frame))
 
+
+(defn capture-action [#^CanvasFrame frame #^OpenCVFrameGrabber grabber]
+  (proxy [TimerTask] []
+    (run []
+        (if (.isVisible  frame)
+          (let [image (.grab grabber)]
+		    (process-image frame image)
+		    (.clearMem storage))
+          (do
+		    (.stop grabber)
+		    (.dispose frame))))))  
+
 (defn main []
   (.redirectError (JavaCvErrorCallback.))
   (let [#^CanvasFrame frame (make-frame "Camera Test")
-	#^OpenCVFrameGrabber grabber (make-grabber)]
-	(loop 	[image (.grab grabber)]
-		(if (.isVisible  frame)
-		  (do
-		    (process-image frame image)
-		    (.clearMem storage)
-		    (recur (.grab grabber)))
-		  (do
-		    (.stop grabber)
-		    (.dispose frame))))))
+	    #^OpenCVFrameGrabber grabber (make-grabber)
+        timer (Timer. "whatever" true)]
+     (.scheduleAtFixedRate timer (capture-action frame grabber) (long 0) frame-rate)))
 
