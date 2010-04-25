@@ -3,7 +3,7 @@
 	(:import [java.awt.event ActionListener KeyAdapter]
              [javax.swing JFrame JLabel Timer]
              [com.sun.jna Native]
-             [name.audet.samuel.javacv CanvasFrame OpenCVFrameGrabber JavaCvErrorCallback]
+             [name.audet.samuel.javacv OpenCVFrameGrabber JavaCvErrorCallback]
 		     [name.audet.samuel.javacv.jna cv cxcore cxcore$IplImage cxcore$CvMemStorage cxcore$CvSeq cxcore$CvRect cxcore$CvPoint cv$CvHaarClassifierCascade]))
 
 (set! *warn-on-reflection* true)
@@ -72,16 +72,18 @@
 (defn make-grabber []
   (doto (OpenCVFrameGrabber. 0) (.start)))
 
-(defn key-listener []
+(defn key-listener [image]
   (proxy [KeyAdapter] [] 
     (keyTyped [e]
-      (println "listening!!!"))))
+      (println "listening!!!")
+      #_(println image)
+      (-> e (.getSource) (.setVisible false)))))
 
 (defn make-frame [title image]
     (doto (JFrame. title)
       (-> (.getContentPane) (.setLayout (java.awt.GridLayout.)))
       (.add (proxy [JLabel] [] (paint [g] (.drawImage g (.getBufferedImage @image) 0 0 nil))))
-      (.addKeyListener (key-listener))
+      (.addKeyListener (key-listener @image))
       (.show)))     
 
 (defn debug []
@@ -97,7 +99,7 @@
     (actionPerformed [e]
         (if (.isVisible  frame)
           (do
-            (println (Thread/currentThread))
+            #_(println (Thread/currentThread))
             (reset! image (.grab grabber))
             (process-image @image)
 		    (.clearMem storage)
