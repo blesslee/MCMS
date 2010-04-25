@@ -1,13 +1,14 @@
 (ns mcms.camera
 	(:use [mcms opencv])
 	(:import [java.awt.event ActionListener KeyAdapter]
-             [java.util Timer TimerTask]
+             [javax.swing JFrame JLabel Timer]
+             [com.sun.jna Native]
              [name.audet.samuel.javacv CanvasFrame OpenCVFrameGrabber JavaCvErrorCallback]
 		     [name.audet.samuel.javacv.jna cv cxcore cxcore$IplImage cxcore$CvMemStorage cxcore$CvSeq cxcore$CvRect cxcore$CvPoint cv$CvHaarClassifierCascade]))
 
 (set! *warn-on-reflection* true)
 
-(def frame-rate (long 1000/30))
+(def frame-rate (int 1000/30))
 
 ; CvHaarClassifierCascade cascade = new CvHaarClassifierCascade(cvLoad(cascadeName));
 ; cvCvtColor(grabbedImage, grayImage, CV_BGR2GRAY);
@@ -65,9 +66,8 @@
     (println (count fseq))
     (draw-rects image (map face->rect fseq))))
 
-(defn process-image [#^CanvasFrame frame #^cxcore$IplImage image]
-    (draw-face-rects image (compute-faces image))
-    (.showImage frame image))
+(defn process-image [#^cxcore$IplImage image]
+    (draw-face-rects image (compute-faces image)))
 
 (defn make-grabber []
   (doto (OpenCVFrameGrabber. 0) (.start)))
@@ -77,35 +77,44 @@
     (keyTyped [e]
       (println "listening!!!"))))
 
-(defn make-frame [#^String title]
-  (doto (CanvasFrame. title)
-        (.addKeyListener (key-listener))))
+(defn make-frame [title image]
+    (doto (JFrame. title)
+      (-> (.getContentPane) (.setLayout (java.awt.GridLayout.)))
+      (.add (proxy [JLabel] [] (paint [g] (.drawImage g (.getBufferedImage @image) 0 0 nil))))
+      (.addKeyListener (key-listener))
+      (.show)))     
 
 (defn debug []
   (def  grabber (make-grabber))
-  (def frame (make-frame "Debugging"))
-  (def image (.grab #^OpenCVFrameGrabber grabber)))
+  (def image (atom (.grab #^OpenCVFrameGrabber grabber)))
+  (def frame (make-frame "Debugging" image)))
 
 (defn end-debug []
-  (.stop #^OpenCVFrameGrabber grabber)
-  (.dispose #^CanvasFrame frame))
+  (.stop #^OpenCVFrameGrabber grabber))
 
-
-(defn capture-action [#^CanvasFrame frame #^OpenCVFrameGrabber grabber]
-  (proxy [TimerTask] []
-    (run []
+(defn capture-action [#^JFrame frame, #^OpenCVFrameGrabber grabber, #^IplImage image]
+  (proxy [ActionListener] []
+    (actionPerformed [e]
         (if (.isVisible  frame)
-          (let [image (.grab grabber)]
-		    (process-image frame image)
-		    (.clearMem storage))
           (do
-		    (.stop grabber)
-		    (.dispose frame))))))  
+            (println (Thread/currentThread))
+            (reset! image (.grab grabber))
+            (process-image @image)
+		    (.clearMem storage)
+            (.repaint frame))            
+          (do 
+            (println "Done!")
+            (.stop grabber)
+            (-> e (.getSource) (.stop)))))))
 
 (defn main []
   (.redirectError (JavaCvErrorCallback.))
-  (let [#^CanvasFrame frame (make-frame "Camera Test")
-	    #^OpenCVFrameGrabber grabber (make-grabber)
-        timer (Timer. "whatever" true)]
-     (.scheduleAtFixedRate timer (capture-action frame grabber) (long 0) frame-rate)))
+  (Native/setProtected true)
+  (let [grabber (make-grabber)
+        image (atom (.grab grabber))
+        frame (make-frame "Camera Test" image)
+        bufferedImage (.getBufferedImage @image)
+        timer (Timer. frame-rate (capture-action frame grabber image))]
+     (.start timer)
+     (.setSize frame (.getWidth bufferedImage) (.getHeight bufferedImage))))
 
