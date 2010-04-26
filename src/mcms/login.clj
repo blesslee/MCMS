@@ -9,11 +9,11 @@
   
 (defonce *current-user* (atom nil))
 
-(defsnippet passwd-login-form "mcms/passwd-login.html" (selector [:form])
+(defsnippet passwd-login-form "mcms/passwd-login.html" [:form]
   [destination]
   [:form] (set-attr :action destination))
 
-(defsnippet face-detect-form "mcms/face-detect.html" (selector [:form])
+(defsnippet face-detect-form "mcms/face-detect.html" [:form]
   [destination]
   [:form] (set-attr :action destination))
 

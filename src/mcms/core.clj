@@ -6,8 +6,6 @@
 (defonce *db* (atom nil))
 (defonce *app* (atom nil))
 
-(defonce *covers* (atom nil))
-
 (defroutes mcms-routes
   (GET "/"
         (show-tolog @*db*))
