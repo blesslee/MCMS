@@ -1,4 +1,5 @@
 (ns mcms.camera
+    ;(:require [fleetdb.client :as fleetdb] [clojure.xml :as xml])
 	(:use [mcms opencv])
 	(:import [java.awt.event ActionListener KeyAdapter]
              [javax.swing JFrame JLabel Timer]
@@ -6,10 +7,9 @@
              [name.audet.samuel.javacv OpenCVFrameGrabber JavaCvErrorCallback]
 		     [name.audet.samuel.javacv.jna cv cxcore cxcore$IplImage cxcore$CvMemStorage cxcore$CvSeq cxcore$CvRect cxcore$CvPoint cv$CvHaarClassifierCascade]))
 
-(set! *warn-on-reflection* true)
-
+;(set! *warn-on-reflection* true)
 (def frame-rate (int 1000/30))
-
+(defonce *selected* (atom nil))
 ; CvHaarClassifierCascade cascade = new CvHaarClassifierCascade(cvLoad(cascadeName));
 ; cvCvtColor(grabbedImage, grayImage, CV_BGR2GRAY);
 ;            CvSeq faces = cvHaarDetectObjects(grayImage, cascade, storage, 1.1, 3, cxcore$CV_HAAR_DO_CANNY_PRUNING);
@@ -72,29 +72,30 @@
 (defn make-grabber []
   (doto (OpenCVFrameGrabber. 0) (.start)))
 
-(defn key-listener [image]
+(defn key-listener [image db]
   (proxy [KeyAdapter] [] 
     (keyTyped [e]
       (println "listening!!!")
+      (reset! *selected* 1)
       #_(println image)
       (-> e (.getSource) (.setVisible false)))))
 
-(defn make-frame [title image]
+(defn make-frame [title image db]
     (doto (JFrame. title)
       (-> (.getContentPane) (.setLayout (java.awt.GridLayout.)))
       (.add (proxy [JLabel] [] (paint [g] (.drawImage g (.getBufferedImage @image) 0 0 nil))))
-      (.addKeyListener (key-listener @image))
+      (.addKeyListener (key-listener @image db))
       (.show)))     
 
-(defn debug []
+(defn debug [db]
   (def  grabber (make-grabber))
   (def image (atom (.grab #^OpenCVFrameGrabber grabber)))
-  (def frame (make-frame "Debugging" image)))
+  (def frame (make-frame "Debugging" image db)))
 
 (defn end-debug []
   (.stop #^OpenCVFrameGrabber grabber))
 
-(defn capture-action [#^JFrame frame, #^OpenCVFrameGrabber grabber, #^IplImage image]
+(defn capture-action [#^JFrame frame, #^OpenCVFrameGrabber grabber, #^IplImage image login-promise]
   (proxy [ActionListener] []
     (actionPerformed [e]
         (if (.isVisible  frame)
@@ -107,16 +108,17 @@
           (do 
             (println "Done!")
             (.stop grabber)
-            (-> e (.getSource) (.stop)))))))
+            (-> e (.getSource) (.stop))
+            (deliver login-promise {:username "ltyou", :selected @*selected*}))))))
 
-(defn main []
+(defn face-detect [db login-promise]
   (.redirectError (JavaCvErrorCallback.))
   (Native/setProtected true)
   (let [grabber (make-grabber)
         image (atom (.grab grabber))
-        frame (make-frame "Camera Test" image)
+        frame (make-frame "Camera Test" image db)
         bufferedImage (.getBufferedImage @image)
-        timer (Timer. frame-rate (capture-action frame grabber image))]
+        timer (Timer. frame-rate (capture-action frame grabber image login-promise))]
      (.start timer)
      (.setSize frame (.getWidth bufferedImage) (.getHeight bufferedImage))))
 

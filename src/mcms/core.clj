@@ -1,13 +1,20 @@
 (ns mcms.core
   (:require [fleetdb.client :as fleetdb])
-  (:use [mcms covers media collection users entrez]
+  (:use [mcms covers media collection users entrez camera login]
 	[compojure]))
 
 (defonce *db* (atom nil))
-
 (defonce *app* (atom nil))
 
 (defroutes mcms-routes
+  (GET "/"
+        (show-tolog @*db*))
+  (POST "/login-face"
+        (face-login @*db*))
+  (POST "/login-passwd"
+        (passwd-login @*db* (:username params) (:password params)))
+  (GET "/logout"
+        (logout-user))
   (GET "/covers/:isbn"
        (serve-file "covers" (:isbn params)))
   (POST "/covers/:isbn"
@@ -22,7 +29,7 @@
   (GET "/users"
        (show-users @*db*))
   (POST "/users"
-	(add-user @*db* (:username params))
+	(add-user-passwd @*db* (:username params) (:password params))
 	(show-users @*db*))
   (POST "/:username" (add-to-collection @*db* params))
   (GET "/:username"
@@ -38,7 +45,6 @@
 ;; ========================================
 ;; The App
 ;; ========================================
-
 
 
 (defn start-app []

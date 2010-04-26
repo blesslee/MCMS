@@ -1,13 +1,14 @@
 (ns mcms.collection
   (:use [net.cgrand.enlive-html]
-	[mcms db media users]))
+	[mcms db media users login]))
 
 (deftemplate collection-template "mcms/collection-template.html" [username collection]
   [:.collection] (content (str username "'s Collection"))
   [:#add-media] (do-> (after (add-media-form (str "/" username))))
   [:#item] (content (map item collection)))
 
-(defn show-collection [username media] (apply str (collection-template username media)))
+(defn show-collection [username media] 
+    (apply str (collection-template username media)))
 
 (defn show-item [media] (apply str (emit* (item media))))
 

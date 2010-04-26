@@ -33,9 +33,13 @@
   ([db]
      (db (users))))
 
-(defn add-user
-  ([db username]
-     (db ["insert" "users" {:id (next-id db "users"), :name username}])))
+;(defn add-user
+;  ([db username]
+;     (db ["insert" "users" {:id (next-id db "users"), :name username}])))
 
+(defn add-user-passwd
+  ([db username password]
+     (db ["insert" "users" {:id (next-id db "users"), :name username :passwd password}])))
+     
 (defn show-users [db]
   (apply str (users-template (users db))))
