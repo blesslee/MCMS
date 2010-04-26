@@ -1,32 +1,32 @@
 (ns mcms.camera
-  (:use [mcms opencv])
-  (:import [java.awt.event ActionListener KeyAdapter]
-	   [javax.swing JFrame JLabel Timer]
-	   [name.audet.samuel.javacv OpenCVFrameGrabber]))
 
-;(set! *warn-on-reflection* true)
+
 
 (def frame-rate (int 1000/30))
+(defonce *selected* (atom nil))
 
 (defn process-image [#^cxcore$IplImage image]
     (draw-face-rects image (compute-faces image)))
 
 (defn key-listener [image]
+(defn key-listener [image db]
   (proxy [KeyAdapter] [] 
     (keyTyped [e]
       (println "listening!!!")
+      (reset! *selected* 1)
       #_(println image)
       (-> e (.getSource) (.setVisible false)))))     
 
-(defn debug []
+
+(defn debug [db]
   (def  grabber (make-grabber))
   (def image (atom (.grab #^OpenCVFrameGrabber grabber)))
-  (def frame (make-frame "Debugging" image)))
+  (def frame (make-frame "Debugging" image db)))
 
 (defn end-debug []
   (.stop #^OpenCVFrameGrabber grabber))
 
-(defn capture-action [#^JFrame frame, #^OpenCVFrameGrabber grabber, #^IplImage image]
+(defn capture-action [#^JFrame frame, #^OpenCVFrameGrabber grabber, #^IplImage image login-promise]
   (proxy [ActionListener] []
     (actionPerformed [e]
         (if (.isVisible  frame)
@@ -39,14 +39,14 @@
           (do 
             (println "Done!")
             (.stop grabber)
-            (-> e (.getSource) (.stop)))))))
+            (-> e (.getSource) (.stop))
+            (deliver login-promise {:username "ltyou", :selected @*selected*}))))))
 
-(defn main []
+(defn face-detect [db login-promise]
   (let [grabber (make-grabber)
         image (atom (.grab grabber))
-        frame (make-frame "Camera Test" image (key-listener @image))
         bufferedImage (.getBufferedImage @image)
-        timer (Timer. frame-rate (capture-action frame grabber image))]
+        timer (Timer. frame-rate (capture-action frame grabber image login-promise))]
      (.start timer)
      (.setSize frame (.getWidth bufferedImage) (.getHeight bufferedImage))))
 
