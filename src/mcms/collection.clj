@@ -1,6 +1,6 @@
 (ns mcms.collection
   (:use [net.cgrand.enlive-html]
-	[mcms db media users login]))
+	[mcms db media users]))
 
 (deftemplate collection-template "mcms/collection-template.html" [username collection]
   [:.collection] (content (str username "'s Collection"))

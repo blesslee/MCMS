@@ -1,6 +1,6 @@
 (ns mcms.login
   (:require [fleetdb.client :as fleetdb] [clojure.xml :as xml])
-  (:use [mcms media camera] 
+  (:use [mcms media camera collection] 
 	[compojure]
 	[clojure.contrib.duck-streams :only [copy]]
 	[net.cgrand.enlive-html])
@@ -35,7 +35,7 @@
 (defn show-loggedin [db {:keys [username selected]}]
   ;(println "Logged in" username) interferes!
   (reset! *current-user* username)
-  (list-media db))
+  (show-user-collection db username))
 
 (defn show-tolog [db]
   (if (= @*current-user* nil)
