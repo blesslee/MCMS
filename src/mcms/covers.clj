@@ -1,12 +1,14 @@
 (ns mcms.covers
   (:import [java.io File]
            [java.net URL])
-  (:use [clojure.contrib.duck-streams :only [copy]]))
+  (:use [clojure.contrib.duck-streams :only [copy]]
+	[mcms opencv]))
 
 (defn add-cover 
   ([isbn cover]
      (let [dest (File. (str "./covers/" isbn))]
        (when-not (.exists dest) (.createNewFile dest))
+       ()
        (copy cover dest)))
   ([{:keys [isbn cover]}]
      (add-cover isbn cover)))
@@ -19,3 +21,4 @@
             (if (.exists cover)
                 cover
                 (get-cover isbn)))))
+

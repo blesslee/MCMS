@@ -1,10 +1,14 @@
 (ns mcms.opencv
-  (:import [name.audet.samuel.javacv CanvasFrame OpenCVFrameGrabber JavaCvErrorCallback]
+  (:import [name.audet.samuel.javacv OpenCVFrameGrabber JavaCvErrorCallback]
+	   [javax.swing JFrame JLabel Timer]
 	   [name.audet.samuel.javacv.jna
-	      cv cv$CvHaarClassifierCascade cv$CvHistogram
-	      cxcore cxcore$IplImage cxcore$CvMemStorage cxcore$CvRect cxcore$CvPoint
+	      cv cv$CvHaarClassifierCascade cv$CvHistogram cv$FloatPointerByReference
+	      cxcore cxcore$IplImage cxcore$IplImage$PointerByReference cxcore$CvMemStorage cxcore$CvRect cxcore$CvPoint
 	      highgui]
+	   [com.sun.jna Memory Native Pointer]
 	   [com.sun.jna.ptr FloatByReference]))
+
+(Native/setProtected true)
 
 (defn make-cascade []
   (cv$CvHaarClassifierCascade. (cxcore/cvLoad "haarcascade_frontalface_alt.xml")))
@@ -19,39 +23,47 @@
   (cxcore/cvGetSize image))
 
 (defn convert-image [image type]
-  (let [result (cxcore$IplImage/create (get-image-size) cxcore/IPL_DEPTH_8U 1)]
+  (let [result (cxcore$IplImage/createCompatible image)]
     (cv/cvCvtColor image result type)
     result))
 
 (defn load-image [file]
   (highgui/cvLoadImage file))
 
-(defn make-frame [title]
-  (CanvasFrame. title))
-
 ; Histograms
 
-(defn param-array 
-  ([params key]
-     (into-array (map key params)))
-  ([params key type]
-     (into-array type (map key params))))
+(defn range-array [{:keys [min max]}]
+  (let [result (doto (FloatByReference.) (.setPointer (Memory. (* 2 Float/SIZE))))] 
+    (.write (.getPointer result) (long 0) (float-array [min max]) (int 0) (int 2))
+    result))
+
+#_(defn ranges-array [bins]
+  (let [result (doto (cv$FloatPointerByReference.) (.setPointer (Memory. (* 2 Pointer/SIZE))))
+	pointer (.getPointer result)
+	arrays (doall (map (comp #(.getPointer %) range-array) bins))]
+    (.write pointer (long 0) (into-array Pointer arrays) (int 0) (int (count bins)))
+    result))
+
+(defn ranges-array [bins]
+  (let [arrays (doall (map range-array bins))]
+    (cv$FloatPointerByReference. (into-array FloatByReference arrays))))
 
 (defn make-histogram [] 
-  (let [bins [{:name "hue", :size 30, :min 0, :max 180}, {:name "saturation", :size 30, :min 0, :max 255}]
+  (let [bins [{:name "hue", :size 30, :min 0, :max 180}, {:name "saturation", :size 30, :min 0, :max 255}]	
         num-bins (count bins)
-	ranges (into-array FloatByReference (map #(FloatByReference. %) (mapcat (juxt :min :max) bins)))]
-    (cv$CvHistogram/create (count bins) (param-array bins :size Integer/TYPE) cv/CV_HIST_ARRAY ranges 1)))
+	sizes (into-array Integer/TYPE (map :size bins))
+	ranges (ranges-array bins)]
+    (cv/cvCreateHist num-bins sizes cv/CV_HIST_ARRAY ranges 1)))
 
 (defn compute-histogram! [image & histogram]
-  (let [hsv (cxcore$IplImage/create (get-image-size image) 8 3)
+  (let [hsv (convert-image image cv/CV_BGR2HSV)
 	h (cxcore$IplImage/create (get-image-size image) 8 1)
 	s (cxcore$IplImage/create (get-image-size image) 8 1)
 	v (cxcore$IplImage/create (get-image-size image) 8 1)
-	histogram (if histogram histogram (make-histogram))]
-    (convert-image image hsv cv/CV_BGR2HSV)
-    (cxcore/cvSplit image h s v 0)
-    (cv/cvCalcHist (into-array (.pointerByReference h) (.pointerByReference s)) histogram 0 0)))
+	histogram (or (first histogram) (make-histogram))
+	array (cxcore$IplImage$PointerByReference. (into-array cxcore$IplImage [h s]))]
+    (cxcore/cvSplit image h s v nil)
+    (cv/cvCalcHist array histogram 0 nil)))
 
 (defn normalize-histogram [histogram]
   (cv/cvNormalizeHist histogram, 1.0))
@@ -90,9 +102,12 @@
     (println (count fseq))
     (draw-rects image (map face->rect fseq))))
 
-(defn process-image [#^CanvasFrame frame #^cxcore$IplImage image]
-    (draw-face-rects image (compute-faces image))
-    (.showImage frame image))
-
 (defn make-grabber []
   (doto (OpenCVFrameGrabber. 0) (.start)))
+
+(defn make-frame [title image key-listener]
+    (doto (JFrame. title)
+      (-> (.getContentPane) (.setLayout (java.awt.GridLayout.)))
+      (.add (proxy [JLabel] [] (paint [g] (.drawImage g (.getBufferedImage @image) 0 0 nil))))
+      (.addKeyListener key-listener)
+      (.show)))
