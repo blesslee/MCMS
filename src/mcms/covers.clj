@@ -17,9 +17,14 @@
 	dot-index (if (> 0 dot-index) (.length name) dot-index)]
     (.substring name 0 dot-index)))
 
+(defn do-compare-histograms [needle hay]
+  (try (compare-histograms needle hay)
+       (catch Throwable e
+	 (.printStackTrace e))))
+
 (defn search-cover [cover]
   (let [histogram (compute-histogram (load-image cover))
-	pairs (fmap (partial compare-histograms histogram) @*cover-histograms*)]
+	pairs (fmap (partial do-compare-histograms histogram) @*cover-histograms*)]
     (sort-by val pairs)))
 
 (defn read-cover-histograms []
@@ -27,9 +32,12 @@
 	histogram-files (filter #(-> % (.getName) (.endsWith ".xml")) (.listFiles covers-dir))]
     (reset! *cover-histograms* (into {} (map (juxt basename cv-load-histogram) histogram-files)))))
 
+(defn do-compute-histogram [file]
+  (-> file (load-image) (compute-histogram)))
+
 (defn compute-cover-histograms []
   (let [histogram-files (filter #(not (-> % (.getName) (.endsWith ".xml"))) (.listFiles (File. *covers-dir*)))]
-    (reset! *cover-histograms* (into {} (map (juxt basename (comp compute-histogram load-image)) histogram-files)))))
+    (reset! *cover-histograms* (into {} (map (juxt basename do-compute-histogram) histogram-files)))))
 
 (defn save-cover-histogram 
   ([isbn]

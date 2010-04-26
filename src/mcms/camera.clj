@@ -5,6 +5,7 @@
 	   [name.audet.samuel.javacv OpenCVFrameGrabber]))
 
 (def frame-rate (int 1000/30))
+
 (defonce *selected* (atom nil))
 
 (defn process-image [#^cxcore$IplImage image]
@@ -17,7 +18,6 @@
       (reset! *selected* 1)
       #_(println image)
       (-> e (.getSource) (.setVisible false)))))
-
 
 (defn debug [db]
   (def  grabber (make-grabber))

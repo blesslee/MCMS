@@ -27,7 +27,8 @@
 	(add-item @*db* params)
 	(show-media (get-media @*db*)))
   (POST "/search"
-	(show-media (get-media @*db* (keys (search-cover (get-in params [:cover :tempfile]))))))
+	(let [search-results (search-cover (get-in params [:cover :tempfile]))]
+	  (show-media (get-media @*db* (keys search-results)) (vals search-results))))
   (GET "/users"
        (show-users @*db*))
   (POST "/users"
