@@ -9,7 +9,7 @@
 
 (def *library-thing-cover-url* "http://covers.librarything.com/devkey/c5e0460ed091635d59fbdac846d6680c/medium/isbn/")
 
-(def *cover-histograms* (atom nil))
+(defonce *cover-histograms* (atom nil))
 
 (defn- basename [name]
   (let [name (if (instance? String name) name (.getName name))
@@ -25,7 +25,7 @@
 (defn search-cover [cover]
   (let [histogram (compute-histogram (load-image cover))
 	pairs (fmap (partial do-compare-histograms histogram) @*cover-histograms*)]
-    (sort-by val pairs)))
+    (sort-by val (filter val pairs))))
 
 (defn read-cover-histograms []
   (let [covers-dir (File. *covers-dir*)
@@ -33,7 +33,10 @@
     (reset! *cover-histograms* (into {} (map (juxt basename cv-load-histogram) histogram-files)))))
 
 (defn do-compute-histogram [file]
-  (-> file (load-image) (compute-histogram)))
+  (try
+    (-> file (load-image) (compute-histogram))
+    (catch Throwable e
+        (.printStackTrace e))))        
 
 (defn compute-cover-histograms []
   (let [histogram-files (filter #(not (-> % (.getName) (.endsWith ".xml"))) (.listFiles (File. *covers-dir*)))]
