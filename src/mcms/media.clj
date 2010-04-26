@@ -14,19 +14,33 @@
   [destination]
   [:form] (set-attr :action destination))
 
-(defsnippet item "mcms/media-template.html" [:#item]
-  [{:strs [id title author]}] 
+(defsnippet item "mcms/media-template.html" [:#item] [{:strs [id title author]}] 
   [:.isbn] (do->
 	    (content (str id))
 	    (set-attr :href (str "/media/" id)))
   [:.title] (content title)
   [:.author] (content author)
-  [:.cover] (set-attr :src (str "/covers/" id)))
+  [:.cover] (set-attr :src (str "/covers/" id))
+  [:.rank]  nil)
+
+(defsnippet ranked-item "mcms/media-template.html" [:#item] [{:strs [id title author]} rank]
+  [:.isbn] (do->
+	    (content (str id))
+	    (set-attr :href (str "/media/" id)))
+  [:.title] (content title)
+  [:.author] (content author)
+  [:.cover] (set-attr :src (str "/covers/" id))
+  [:.rank] (content (str (- 1 rank))))
 
 (deftemplate media-template "mcms/media-template.html" [collection]
   [:#add-media] (do-> (after (add-media-form "/media")))
   [:#search-media] (do-> (after (search-media-form "/search")))
   [:#item] (content (map item collection)))
+
+(deftemplate ranked-media-template "mcms/media-template.html" [collection rank]
+  [:#add-media] (do-> (after (add-media-form "/media")))
+  [:#search-media] (do-> (after (search-media-form "/search")))
+  [:#item] (content (map ranked-item collection rank)))
 
 (defn count-item 
   ([isbn]
@@ -66,5 +80,8 @@
   ([db isbns]
      (db (get-items isbns))))
 
-(defn show-media [media]
-  (media-template media))
+(defn show-media 
+  ([media]
+     (media-template media))
+  ([media rank]
+     (ranked-media-template media rank)))
