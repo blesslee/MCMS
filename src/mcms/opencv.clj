@@ -47,8 +47,8 @@
 (defn get-image-size [image]
   (cxcore/cvGetSize image))
 
-(defn convert-image [image type]
-  (let [result (cxcore$IplImage/createCompatible image)]
+(defn convert-image [image type & [result & rest]]
+  (let [result (or result (cxcore$IplImage/createCompatible image))]
     (cv/cvCvtColor image result type)
     result))
 
@@ -104,7 +104,7 @@
   (for [i (range (.total cvseq))] (cxcore/cvGetSeqElem cvseq i)))
 
 (defn compute-faces [image]
-  (let [gray-image (convert-image image cv/CV_BGR2GRAY)
+  (let [gray-image (convert-image image cv/CV_BGR2GRAY (cxcore$IplImage/create (.width image) (.height image) cxcore/IPL_DEPTH_8U 1))
 	faces (cv/cvHaarDetectObjects gray-image cascade storage 1.1 3 0)]
     faces))
 

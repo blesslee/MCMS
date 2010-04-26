@@ -30,14 +30,20 @@
   [:.title] (content title)
   [:.author] (content author)
   [:.cover] (set-attr :src (str "/covers/" id))
-  [:.rank] (content (str (- 1 rank))))
+  [:.rank] (content (str rank)))
 
-(deftemplate media-template "mcms/media-template.html" [collection]
+(deftemplate media-template "mcms/media-template.html" [current collection]
+  [:.current] (do->
+	    (content (str current))
+	    (set-attr :href (str current)))
   [:#add-media] (do-> (after (add-media-form "/media")))
   [:#search-media] (do-> (after (search-media-form "/search")))
   [:#item] (content (map item collection)))
 
-(deftemplate ranked-media-template "mcms/media-template.html" [collection rank]
+(deftemplate ranked-media-template "mcms/media-template.html" [current collection rank]
+  [:.current] (do->
+	    (content (str current))
+	    (set-attr :href (str current)))
   [:#add-media] (do-> (after (add-media-form "/media")))
   [:#search-media] (do-> (after (search-media-form "/search")))
   [:#item] (content (map ranked-item collection rank)))
@@ -81,7 +87,7 @@
      (db (get-items isbns))))
 
 (defn show-media 
-  ([media]
-     (media-template media))
-  ([media rank]
-     (ranked-media-template media rank)))
+  ([current media]
+     (media-template current media))
+  ([current media rank]
+     (ranked-media-template current media rank)))

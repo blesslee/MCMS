@@ -36,7 +36,7 @@
   (try
     (-> file (load-image) (compute-histogram))
     (catch Throwable e
-        (.printStackTrace e))))        
+        (println "Bad coverart" file))))       
 
 (defn compute-cover-histograms []
   (let [histogram-files (filter #(not (-> % (.getName) (.endsWith ".xml"))) (.listFiles (File. *covers-dir*)))]

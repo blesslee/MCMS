@@ -7,7 +7,7 @@
   (:import [java.io File]
            [javax.swing SwingUtilities]))
   
-(defonce *current-user* (atom nil))
+;(defonce *current-user* (atom nil))
 
 (defsnippet passwd-login-form "mcms/passwd-login.html" [:form]
   [destination]
@@ -34,17 +34,26 @@
   
 (defn show-loggedin [db {:keys [username selected]}]
   ;(println "Logged in" username) interferes!
-  (reset! *current-user* username)
-  (show-user-collection db username))
+  #_(reset! *current-user* username)
+  ; Return a vector containing new session and the html
+  [(session-assoc :current-user username)
+  (redirect-to (str "/" username))#_(show-user-collection db username)])
 
-(defn show-tolog [db]
-  (if (= @*current-user* nil)
-  (login-template)
-  (show-loggedin db @*current-user*))) 
+;(defn show-tolog [db]
+;  (if #_(= @*current-user* nil) (= current-user nil)
+;  (login-template)
+;  #_(show-loggedin db @*current-user*) (show-loggedin db current-user))) 
 
-(defn logout-user []
-  (reset! *current-user* nil)
-  (login-template))
+(defn show-tolog [session db]
+  (if (contains? session :current-user)
+    (show-loggedin db (:current-user session))
+    (login-template)))
+
+(defn logout-user [session]
+  #_(reset! *current-user* nil)
+  (if (contains? session :current-user)
+    [(session-dissoc :current-user)
+    (login-template)]))
   
 (defn get-detect-result [db]
   (let [login-promise (promise)]
@@ -57,5 +66,5 @@
   
 (defn passwd-login [db username password]
   (if (check-passwd db username password)
-    (show-loggedin db username)
+    (show-loggedin db {:username username})
     (show-tolog db)))

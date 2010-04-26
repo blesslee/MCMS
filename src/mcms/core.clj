@@ -8,13 +8,13 @@
 
 (defroutes mcms-routes
   (GET "/"
-        (show-tolog @*db*))
+        (show-tolog session @*db*))
   (POST "/login-face"
         (face-login @*db*))
   (POST "/login-passwd"
         (passwd-login @*db* (:username params) (:password params)))
   (GET "/logout"
-        (logout-user))
+        (logout-user session))
   (GET "/covers/:isbn"
        (serve-file "covers" (:isbn params)))
   (POST "/covers/:isbn"
@@ -22,30 +22,30 @@
   (GET "/media/:isbn"
        (show-item (first (get-media @*db* [(:isbn params)]))))
   (GET "/media"
-       (show-media (get-media @*db*)))
+       (show-media (:current-user session) (get-media @*db*)))
   (POST "/media"
 	(add-item @*db* params)
-	(show-media (get-media @*db*)))
+	(show-media (:current-user session) (get-media @*db*)))
   (POST "/search"
 	(let [search-results (search-cover (get-in params [:cover :tempfile]))]
-	  (show-media (get-media @*db* (keys search-results)) (vals search-results))))
+	  (show-media (:current-user session) (get-media @*db* (keys search-results)) (vals search-results))))
   (GET "/users"
        (show-users @*db*))
   (POST "/users"
 	(add-user-passwd @*db* (:username params) (:password params))
 	(show-users @*db*))
   (POST "/:username" 
-	(add-to-collection @*db* params)
-	(show-user-collection @*db* (:username params)))
+	(add-to-collection @*db* (assoc params :username (:current-user session)))
+	(redirect-to (str "/" (:current-user session))))
   (GET "/:username"
-       (show-user-collection @*db* (:username params)))
+       (show-user-collection @*db* (:current-user session) (:username params)))
   (GET "*"
        (or (serve-file "public" (:* params)) :next))
   (ANY "*"
        [404 "Page Not Found"]))
 
 (decorate mcms-routes (with-multipart))
-
+(decorate mcms-routes (with-session :memory))
 
 ;; ========================================
 ;; The App
