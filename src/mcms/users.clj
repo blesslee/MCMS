@@ -6,13 +6,13 @@
 	[net.cgrand.enlive-html])
   (:import [java.io File]))
 
-(defsnippet user-template "mcms/users-template.html" (selector [:#item])
+(defsnippet user-template "mcms/users-template.html" [:#item]
   [{:strs [name]}]
   [:.user]   (do-> 
 	      (set-attr :href (str "/" name)) 
 	      (content name)))
 
-(defsnippet user-form "mcms/addUser.html" (selector [:form])
+(defsnippet user-form "mcms/addUser.html" [:form]
   [destination]
   [:form] (set-attr :action destination))
 

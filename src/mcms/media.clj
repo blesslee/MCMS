@@ -6,15 +6,15 @@
 	[net.cgrand.enlive-html])
   (:import [java.io File]))
 
-(defsnippet add-media-form "mcms/addMedia.html" (selector [:form])
+(defsnippet add-media-form "mcms/addMedia.html" [:form]
   [destination]
   [:form] (set-attr :action destination))
 
-(defsnippet search-media-form "mcms/searchMedia.html" (selector [:form])
+(defsnippet search-media-form "mcms/searchMedia.html" [:form]
   [destination]
   [:form] (set-attr :action destination))
 
-(defsnippet item "mcms/media-template.html" (selector [:#item])
+(defsnippet item "mcms/media-template.html" [:#item]
   [{:strs [id title author]}] 
   [:.isbn] (do->
 	    (content (str id))
@@ -25,7 +25,7 @@
 
 (deftemplate media-template "mcms/media-template.html" [collection]
   [:#add-media] (do-> (after (add-media-form "/media")))
-  [:#search-media] (do-> (after (search-media-form "/media")))
+  [:#search-media] (do-> (after (search-media-form "/search")))
   [:#item] (content (map item collection)))
 
 (defn count-item 
@@ -46,9 +46,9 @@
 	 ["insert" "media" {:id isbn :author author :title title}]])
     (add-cover isbn cover-source)))
 
-(defn get-items
+(defn- get-items
   ([isbns]
-     ["select" "media" {"where" ["in" :id isbns]}])
+     ["select" "media" {"where" ["in" :id (vec isbns)]}])
   ([db isbns]
      (db (get-items isbns))))
 
@@ -58,5 +58,13 @@
   ([db uid]
      (db (owned uid))))
 
-(defn show-media [db] 
-  (media-template (db ["select" "media"])))
+(defn get-media 
+  ([]
+     ["select" "media"])
+  ([db]
+     (db (get-media)))
+  ([db isbns]
+     (db (get-items isbns))))
+
+(defn show-media [media]
+  (media-template media))

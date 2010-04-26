@@ -7,24 +7,30 @@
 
 (defonce *app* (atom nil))
 
+(defonce *covers* (atom nil))
+
 (defroutes mcms-routes
   (GET "/covers/:isbn"
        (serve-file "covers" (:isbn params)))
   (POST "/covers/:isbn"
 	(add-cover (:isbn params) (get-in params [:cover :tempfile])))
   (GET "/media/:isbn"
-       (show-item (first (get-items @*db* [(:isbn params)]))))
+       (show-item (first (get-media @*db* [(:isbn params)]))))
   (GET "/media"
-       (show-media @*db*))
+       (show-media (get-media @*db*)))
   (POST "/media"
 	(add-item @*db* params)
-	(show-media @*db*))
+	(show-media (get-media @*db*)))
+  (POST "/search"
+	(show-media (get-media @*db* (keys (search-cover (get-in params [:cover :tempfile]))))))
   (GET "/users"
        (show-users @*db*))
   (POST "/users"
 	(add-user @*db* (:username params))
 	(show-users @*db*))
-  (POST "/:username" (add-to-collection @*db* params))
+  (POST "/:username" 
+	(add-to-collection @*db* params)
+	(show-user-collection @*db* (:username params)))
   (GET "/:username"
        (show-user-collection @*db* (:username params)))
   (GET "*"
@@ -43,6 +49,7 @@
 
 (defn start-app []
   (if @*app* (stop @*app*))
+  (compute-cover-histograms)
   (reset! *db* (fleetdb/connect {:host "127.0.0.1", :port 3400}))
   (reset! *app* (run-server {:port 8080}
                             "/*" (servlet mcms-routes))))

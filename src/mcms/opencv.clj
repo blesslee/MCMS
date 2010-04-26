@@ -1,17 +1,42 @@
 (ns mcms.opencv
   (:import [name.audet.samuel.javacv OpenCVFrameGrabber JavaCvErrorCallback]
 	   [javax.swing JFrame JLabel Timer]
+	   [java.io File]
+	   [javax.imageio ImageIO]
 	   [name.audet.samuel.javacv.jna
-	      cv cv$CvHaarClassifierCascade cv$CvHistogram cv$FloatPointerByReference
-	      cxcore cxcore$IplImage cxcore$IplImage$PointerByReference cxcore$CvMemStorage cxcore$CvRect cxcore$CvPoint
+	      cv cv$CvHaarClassifierCascade cv$CvHistogram cv$CvHistogram$PointerByReference cv$FloatPointerByReference
+	      cxcore cxcore$IplImage cxcore$IplImage$PointerByReference cxcore$CvMemStorage cxcore$CvRect cxcore$CvPoint cxcore$CvAttrList
 	      highgui]
 	   [com.sun.jna Memory Native Pointer]
 	   [com.sun.jna.ptr FloatByReference]))
 
 (Native/setProtected true)
 
-(defn make-cascade []
-  (cv$CvHaarClassifierCascade. (cxcore/cvLoad "haarcascade_frontalface_alt.xml")))
+; Persistence
+
+(defn cv-save [filename obj]
+  (cxcore/cvSave filename (.getPointer obj) nil nil (.byValue (cxcore$CvAttrList.))))
+
+(defn cv-save-to-string [obj]
+  (let [file (File/createTempFile "mcms-tmp-" ".xml")
+	name (.getCanonicalPath file)]
+    (cv-save name obj)
+    (.deleteOnExit file)
+    (slurp name)))
+
+(defmulti cv-load class)
+
+(defmethod cv-load File [file]
+  (cxcore/cvLoad (.getCanonicalPath file)))
+
+(defmethod cv-load String [filename]
+  (cxcore/cvLoad filename))
+
+(defn cv-load-histogram [file]
+  (cv$CvHistogram. (cv-load file)))
+
+(defn- make-cascade []
+  (cv$CvHaarClassifierCascade. (cv-load "haarcascade_frontalface_alt.xml")))
 
 (def cascade (make-cascade))
 
@@ -27,46 +52,51 @@
     (cv/cvCvtColor image result type)
     result))
 
-(defn load-image [file]
+(defmulti load-image class)
+
+(defmethod load-image String [file]
   (highgui/cvLoadImage file))
+
+(defmethod load-image File [file]
+  (let [image (ImageIO/read file)]
+    (cxcore$IplImage/createFrom image)))
 
 ; Histograms
 
-(defn range-array [{:keys [min max]}]
+(defn- range-array [{:keys [min max]}]
   (let [result (doto (FloatByReference.) (.setPointer (Memory. (* 2 Float/SIZE))))] 
     (.write (.getPointer result) (long 0) (float-array [min max]) (int 0) (int 2))
     result))
 
-#_(defn ranges-array [bins]
-  (let [result (doto (cv$FloatPointerByReference.) (.setPointer (Memory. (* 2 Pointer/SIZE))))
-	pointer (.getPointer result)
-	arrays (doall (map (comp #(.getPointer %) range-array) bins))]
-    (.write pointer (long 0) (into-array Pointer arrays) (int 0) (int (count bins)))
-    result))
-
-(defn ranges-array [bins]
+(defn- ranges-array [bins]
   (let [arrays (doall (map range-array bins))]
     (cv$FloatPointerByReference. (into-array FloatByReference arrays))))
 
-(defn make-histogram [] 
-  (let [bins [{:name "hue", :size 30, :min 0, :max 180}, {:name "saturation", :size 30, :min 0, :max 255}]	
+(defn- make-histogram [& [bins & rest]] 
+  (let [bins (when-not bins [{:name "hue", :size 30, :min 0, :max 180}, {:name "saturation", :size 30, :min 0, :max 255}])	
         num-bins (count bins)
 	sizes (into-array Integer/TYPE (map :size bins))
 	ranges (ranges-array bins)]
     (cv/cvCreateHist num-bins sizes cv/CV_HIST_ARRAY ranges 1)))
 
-(defn compute-histogram! [image & histogram]
-  (let [hsv (convert-image image cv/CV_BGR2HSV)
-	h (cxcore$IplImage/create (get-image-size image) 8 1)
-	s (cxcore$IplImage/create (get-image-size image) 8 1)
-	v (cxcore$IplImage/create (get-image-size image) 8 1)
-	histogram (or (first histogram) (make-histogram))
-	array (cxcore$IplImage$PointerByReference. (into-array cxcore$IplImage [h s]))]
-    (cxcore/cvSplit image h s v nil)
-    (cv/cvCalcHist array histogram 0 nil)))
+(defn compare-histograms [hist1 hist2] 
+  (cv/cvCompareHist hist1 hist2 cv/CV_COMP_BHATTACHARYYA))
 
-(defn normalize-histogram [histogram]
+(defn normalize-histogram! [histogram]
   (cv/cvNormalizeHist histogram, 1.0))
+
+(defn compute-histogram [image]
+  (let [hsv (convert-image image cv/CV_BGR2HSV)
+	plane1 (cxcore$IplImage/create (get-image-size image) 8 1)
+	plane2 (cxcore$IplImage/create (get-image-size image) 8 1)
+	plane3 (cxcore$IplImage/create (get-image-size image) 8 1)
+	histogram (make-histogram)
+	array (cxcore$IplImage$PointerByReference. (into-array cxcore$IplImage [plane1 plane2]))]
+    (cxcore/cvSplit hsv plane1 plane2 plane3 nil)
+    (cv/cvCalcHist array histogram 0 nil)
+    (normalize-histogram! histogram)
+    histogram))
+
 
 ; Faces
 

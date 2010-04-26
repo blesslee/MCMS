@@ -10,14 +10,13 @@
 (defn user-collection [db username]   
   (let [uid (get-user-id db username)
 	isbns (map #(get % "isbn") (owned db uid))]
-    (get-items db isbns)))
+    (get-media db isbns)))
 
 (defn add-to-collection 
   ([db {username :username, isbn :isbn :as item}]
      (let [uid (get-user-id db username)]
        (when (zero? (count-item db isbn)) (add-item db item))
-       (db ["insert" "collection" {:id (next-id db "collection") :isbn isbn, :owner uid}])
-       (list-collection db username))))
+       (db ["insert" "collection" {:id (next-id db "collection") :isbn isbn, :owner uid}]))))
 
 (defn show-collection [username media] (apply str (collection-template username media)))
 
